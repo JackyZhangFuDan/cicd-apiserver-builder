@@ -1,0 +1,81 @@
+# 最好把imagepullpolicy改成always，以便开发时系统刷新代码
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicd-apiserver-service-apiserver
+  namespace: cicd-apiserver
+  labels:
+    api: cicd-apiserver-service
+    apiserver: "true"
+spec:
+  selector:
+    matchLabels:
+      api: cicd-apiserver-service
+      apiserver: "true"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        api: cicd-apiserver-service
+        apiserver: "true"
+    spec:
+      containers:
+      - name: apiserver
+        image: jackyzhangfd/cicd-apiserver-builder:1.0
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: apiserver-certs
+          mountPath: /apiserver.local.config/certificates
+          readOnly: true
+        command:
+        - "./apiserver"
+        args:
+        - "--etcd-servers=http://etcd-svc:2379"
+        - "--tls-cert-file=/apiserver.local.config/certificates/tls.crt"
+        - "--tls-private-key-file=/apiserver.local.config/certificates/tls.key"
+        - "--audit-log-path=-"
+        - "--feature-gates=APIPriorityAndFairness=false"
+        - "--audit-log-maxage=0"
+        - "--audit-log-maxbackup=0"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      volumes:
+      - name: apiserver-certs
+        secret:
+          secretName: cicd-apiserver-service
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: cicd-apiserver-service
+  namespace: cicd-apiserver
+  labels:
+    api: cicd-apiserver-service
+    apiserver: "true"
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR4ekNDQXErZ0F3SUJBZ0lJV0phU2RYdkpaakl3RFFZSktvWklodmNOQVFFTEJRQXdkakVMTUFrR0ExVUUKQmhNQ2RXNHhDekFKQmdOVkJBZ01Bbk4wTVFvd0NBWURWUVFIREFGc01Rb3dDQVlEVlFRS0RBRnZNUXN3Q1FZRApWUVFMREFKdmRURTFNRE1HQTFVRUF3d3NZMmxqWkMxaGNHbHpaWEoyWlhJdGMyVnlkbWxqWlMxalpYSjBhV1pwClkyRjBaUzFoZFhSb2IzSnBkSGt3SGhjTk1qTXhNREUyTVRJek5EUTBXaGNOTXpNeE1ERXpNVEl6TkRRMFdqQTAKTVRJd01BWURWUVFERXlsamFXTmtMV0Z3YVhObGNuWmxjaTF6WlhKMmFXTmxMbU5wWTJRdFlYQnBjMlZ5ZG1WeQpMbk4yWXpDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBS0V4SGQrdkZobVR4UnhvCjVyREpKc29IMlRSSTRuRnNBQVgrS2E4amJTUDloUWUyTmJuSkphenlHWHdGOHdvSEwxNjd6TThuWDVrbzcxcEQKR0YyOXZURmNKSlVHZ0RqYy9lZDJIdTREd2cyQURKdXJ0YjJpMWhGTTVLaGlTUndpRmNqR3d4dGZkcU1LNkNpYgo4bUhleXJmemxyWGhIT2lURDU1MFlLanlCZ042OEh4L2xNdXJPMy9uV3ZSaitTVTBqVlhpQkZLRkl3VGFJbmV2Ck9SNnZHSEJFT3F0UWF2UEN4NzNrMGI4UlBFRTVOb2J6MTBKUVRmT0ZSOVJ1V05RWTV0UGsxZTJsdHJSUWl2U1oKbXRDcllwdzk1YU5ITWhmL0dkTGEyOElxalJjeWFKVk1KVEFIRVlnd0JTL25GYVUzdDhlRlhPaGhRQmxLQ29IVAp2NnlCSmNrQ0F3RUFBYU9CbWpDQmx6QU9CZ05WSFE4QkFmOEVCQU1DQmFBd0hRWURWUjBsQkJZd0ZBWUlLd1lCCkJRVUhBd0VHQ0NzR0FRVUZCd01DTUI4R0ExVWRJd1FZTUJhQUZBWWNvb1JWNDVSelRlZmJDakhzMFZVZW5xNUEKTUVVR0ExVWRFUVErTUR5Q0NXeHZZMkZzYUc5emRJSXBZMmxqWkMxaGNHbHpaWEoyWlhJdGMyVnlkbWxqWlM1agphV05rTFdGd2FYTmxjblpsY2k1emRtT0hCSDhBQUFFd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFFNUZtbWV6CktHV3V3TUFXVUQxcUI2eGxjekVzbWJ1N2g4RnIwUSszTzVsS1l4bmJxTDE3Tm5aYWxHRWlhVWdxSU9rWmRCRmcKRFQ1MVk5a0VjeE5FVXlLYmdTZE1aOG1MSERjZW55WVR3ZmxoMXR1RndjUFVTd25DSWJtYkdsNHNUQjB1cmluYwpZV3MwQ3EyeXNocFU1Ti9BWUtSU21VOGJGYzRPZ1Q4MUVSWGJQSEkzNHFoK2MrVkFCeHVZR2s4Vm5OY1NVcWFrClN3Ymhub2NIblNEYXl0RjNpS1VFRzdKdG81OFlMNExpSVJaM0grVFhoMldXNHpDSXpPaTJRT1ZqSkhKU3JRZlIKNHhDSEM3RzhBMk9WdGF5RjJjTFNhdEdMR0J6bXl1U1Y3L05zWWpFa0NrVkd0bzVGUWRxbmxDL0t5cDNxdG91cAp6dkRiajJ4N21NRngvdUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBb1RFZDM2OFdHWlBGSEdqbXNNa215Z2ZaTkVqaWNXd0FCZjRwcnlOdEkvMkZCN1kxCnVja2xyUElaZkFYekNnY3ZYcnZNenlkZm1TanZXa01ZWGIyOU1Wd2tsUWFBT056OTUzWWU3Z1BDRFlBTW02dTEKdmFMV0VVemtxR0pKSENJVnlNYkRHMTkyb3dyb0tKdnlZZDdLdC9PV3RlRWM2Sk1Qbm5SZ3FQSUdBM3J3ZkgrVQp5NnM3ZitkYTlHUDVKVFNOVmVJRVVvVWpCTm9pZDY4NUhxOFljRVE2cTFCcTg4TEh2ZVRSdnhFOFFUazJodlBYClFsQk44NFZIMUc1WTFCam0wK1RWN2FXMnRGQ0s5Sm1hMEt0aW5EM2xvMGN5Ri84WjB0cmJ3aXFORnpKb2xVd2wKTUFjUmlEQUZMK2NWcFRlM3g0VmM2R0ZBR1VvS2dkTy9ySUVseVFJREFRQUJBb0lCQUVSWW14NFpFdm5OV2lwdApvRU1kUjBFcWlzSk1sUmNhZi9nS2lJb21MMFN2WGhTakFhekF5U1RIa2w2djl4a3RhcngwVEtjWlBzT21RN2ExCjlFTHJES2s5TkpXcnAvcDBXWVFtNVg1dVFYMlA2Y2lueWV1YWU4SGlKS0h3NnFidkhPV0F3WUY5dk1Qcy8vc1kKQkhIVEVZbGwwMlZUQ2ZyalFDQWpvRWlDTm1LS3RhZHhlRVp2UTJiMWtSRDQvWnc4L1lHTnphby83eGhCNDUzYQpGdjNFRzR3dTlNbUNJUHJjbnhmWDFuUWR2eWpoclB4WWpkRzVVbGV5NkRTRDRoeGpiZ09FbkowTDNmUFROOTk4CnlhMHV6a0tkMGlacnVCd0dCdjFobjQ5bG93bTdFck4xWDBFKzFQNWhVUmxsMG40UU8vNENXRFlVbzFWUGZiWGEKYkFZVmNERUNnWUVBMWRCVDY0OHJHajF1UlhDWGdad0oyTjZTMzQrSngwOW5PWGRBVm1DeWdleFc4R3RTNE1qVAprWjVFUEpVbWR4cTY0TXp3K282ZXlwa2hBMGtVcVRkdWV2V0FkQ3BrRGZySXQzYlVsdHlwd0lCNVdEc0pDUzNHCmd5d2FvU09PQ2FvSENUUXFuUzd6aGxzaGhsVWlKNHdRSFhUbU8wbHRJRVJIbitXUm5wNDlLdU1DZ1lFQXdQN2UKK2xoVHE5N2JlWGQ0d1h1NnMwemRJcktSbGNpSFFMVkhoWXgzemNCZ0cyaWxleWtUdjhGeWlRcFZtekM2NzhlWQpSVXloY2hrQjZqRkFEUDBOWVNlcDJBQWhCTkVhcEIwUlpVczZGOTZPOXZ0Q1E0WDMyZklhdVpqSEtld3Nab0ZNCi9XSzE5Yk1QZFZ2bk03VzFCQkFWeFBBcUJnVFF0dGR3Vy9BbE1HTUNnWUVBbmNWTzEyZmFiMDliR2lROXQ2YlQKWVZMRFgvSER3ZTFtaHZIbTZKWUx3bkVKcWZnWHZNU1QwVVRPcDBHTGs2R0d1akNmdE5NZWV2TEplR29wczcreQpaMHJXa1dGaVdTcHZoMmxJNzFVK2NVeWJ2YTQ2T2Fxc2E4aFVrZ2p4VzFJNlJPRllmSW5UcXBWK1JHaDNmbVVNCjB4K2FiNjc3dGk2TUI0SFhsUXJBcWU4Q2dZRUFoSTVKN2w2K1VWMEhGNTJrVmhnNmVxNC9jSFovb2dZU1I3SjcKQmxJZGN6Yy9pM1BMdlJUUW1MTXdqTW1KVk1jYWpsaGowSzA2Y2hpVkJScUFxS3NpQm1uc3NRd2RvYVpSaXdqZwpDdGVwZGYySjZqOVhHdk9uOFl6bEtEYTBES3BITUx4OGVjalR1NGNhQmZ4eWgwUzFxSzIzbGdWeWg2SEZET0JhCkx2dDVQNHNDZ1lCam9mMS84RE5zRTlxejJXUXU1b2NSV3RYNlB2aVNUNlROYnBxVWhJZTgrWmI3RUtVa2I3NnIKSTh1blk5YU1ISFpFQkRjOXo3RjBtK0V4MlQveFZvMHRaZHZaQ21TTExSdGVhWDl4VjlGemUyVmxZVlBIaU5ONgpFeGNDeEI1MzZmMjVVYjdEUnVOdGFTaTkvWFRJZXhjTTBNUmhKbXpOZGE3bk9kdFdIR2dEZXc9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-apiserver-service
+  namespace: cicd-apiserver
+  labels:
+    api: cicd-apiserver-service
+    apiserver: "true"
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 443
+  selector:
+    api: cicd-apiserver-service
+    apiserver: "true"
