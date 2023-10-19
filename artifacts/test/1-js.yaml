@@ -3,9 +3,19 @@ kind: JenkinsService
 metadata:
   name: the-js-1
 spec:
+  instanceamount: 1
+  instancecpu: 1
+
+---
+apiVersion: cicd.autobusi.com/v1
+kind: JenkinsService
+metadata:
+  name: the-js-2
+spec:
   instanceamount: 2
   instancecpu: 2
 
+---
 # apiVersion: cicd.autobusi.com/v1alpha1
 # kind: JenkinsService
 # metadata:
